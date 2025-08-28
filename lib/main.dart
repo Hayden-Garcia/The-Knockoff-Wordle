@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
               ),
               const SizedBox(height: 15),
               // call the counter class
-              
+
             ],
           ),
         ),
@@ -59,3 +59,40 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+class Counter extends StatefulWidget {
+  const Counter({super.key});
+
+  @override
+  State<StatefulWidget> createState() {
+    return new _CounterState();
+  }
+}
+
+class _CounterState extends State<Counter> {
+  // The 'State' objext holds the mutable data.
+  int _count = 0;
+
+  void _increment() {
+    // setState() tells Flutter to rebuild this Widget.
+    setState(() {
+      this._count++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        new Text('$_count'),
+        const SizedBox(height: 10),
+        new ElevatedButton(
+          onPressed: this._increment,
+          child: const Text("Follow"),
+        ),
+      ],
+    );
+  }
+}
+
+void main() => runApp(const MyApp());
