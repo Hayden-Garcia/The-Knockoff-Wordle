@@ -2,9 +2,11 @@
 // 8/30/2025
 import 'package:flutter/material.dart';
 
+// Creating MyApp class that extends StatelessWidget that holds the Name, Profession, and Email 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+// @override funciton that will display the Name, Profession, Email. Is a must when a class extends StatelessWidget 
   @override
   Widget build(BuildContext context) {
     const String appTitle = 'Personal Business Card';
@@ -51,7 +53,7 @@ class MyApp extends StatelessWidget {
               ),
               const SizedBox(height: 15),
               // call the counter class
-
+              new Counter(),
             ],
           ),
         ),
@@ -60,6 +62,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+//Creating a counter class that extends StatefulWidget to be called in the MyApp class
 class Counter extends StatefulWidget {
   const Counter({super.key});
 
@@ -73,6 +76,7 @@ class _CounterState extends State<Counter> {
   // The 'State' objext holds the mutable data.
   int _count = 0;
 
+// handles the onPressed event of the elevated button.
   void _increment() {
     // setState() tells Flutter to rebuild this Widget.
     setState(() {
@@ -80,6 +84,7 @@ class _CounterState extends State<Counter> {
     });
   }
 
+//function needed when creating a statefulWidget
   @override
   Widget build(BuildContext context) {
     return Column(
