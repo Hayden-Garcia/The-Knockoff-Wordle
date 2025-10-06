@@ -809,3 +809,291 @@ class _ThirdScreenState extends State<ThirdScreen> {
     'ZEBRA',
     'ZESTY',
   ];
+
+  String _solution = '';
+  // number of guesses
+  int _maxRows = 6;
+  // length of the word
+  int _wordLen = 5;
+
+  // place to store the guesses
+  List<String> _guesses = <String>[];
+  String _currentInput = '';
+  String? _message;
+  bool _gameOver = false;
+
+  TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Shuffle the word list and pick the first word as the solution
+    _wordList.shuffle();
+    _solution = _wordList[0];
+  }
+
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is disposed
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged(String value) {
+    String upper = value.toUpperCase();
+
+    if (upper.length > _wordLen) {
+      upper = upper.substring(0, _wordLen);
+    }
+
+    setState(() {
+      // changing the characters to upper case
+      _currentInput = upper;
+      _message = null;
+    });
+  }
+
+  bool _isValidGuess(String guess) {
+    // removes the spaces at the end
+    guess = guess.trim();
+
+    // Must be 5 letters
+    if (guess.length != _wordLen) {
+      return false;
+    }
+
+    // reject all same characters words
+    bool allSame = true;
+    for (int i = 0; i < guess.length; i++) {
+      if (guess[i] != guess[0]) {
+        allSame = false;
+        break;
+      }
+    }
+
+    // blocks all same character guesses
+    if (allSame) {
+      return false;
+    }
+
+    // the word guessed must be in the word list
+    for (int i = 0; i < _wordList.length; i++) {
+      if (_wordList[i] == guess) {
+        return true;
+      }
+    }
+    // guess not in the list
+    return false;
+  }
+
+  // 0 = grey, 1 = yellow, 2 = green
+  List<int> _evaluate(String guess, String solution) {
+    List<int> result = <int>[0, 0, 0, 0, 0];
+    guess = guess.toUpperCase();
+    solution = solution.toUpperCase();
+
+    List<String> guessChars = guess.split('');
+    List<String> solutionChars = solution.split('');
+
+    // count of each letter in solution(excluding greens)
+    Map<String, int> letterCount = {};
+
+    // First pass: mark greens
+    for (int i = 0; i < _wordLen; i++) {
+      String solLetter = solutionChars[i];
+      String guessLetter = guessChars[i];
+
+      if (guessLetter == solLetter) {
+        result[i] = 2; //green
+      } else {
+        // only count letter not already matched
+        if (letterCount.containsKey(solLetter)) {
+          letterCount[solLetter] = letterCount[solLetter]! + 1;
+        } else {
+          letterCount[solLetter] = 1;
+        }
+      }
+    }
+
+    // second pass: mark yellows
+    for (int i = 0; i < _wordLen; i++) {
+      if (result[i] == 0) {
+        String letter = guessChars[i];
+        if (letterCount.containsKey(letter) && letterCount[letter]! > 0) {
+          result[i] = 1; //yellow
+          letterCount[letter] = letterCount[letter]! - 1;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  void _submitGuess() {
+    if (_gameOver) return;
+
+    String guess = _currentInput;
+
+    // checking to see if this a valid guess
+    if (!_isValidGuess(guess)) {
+      setState(() {
+        _message = "Enter a valid word!";
+      });
+      return;
+    }
+    // checking to see if the input is longer than what is allowed
+    if (_guesses.length >= _maxRows) {
+      return;
+    }
+    setState(() {
+      _guesses.add(guess);
+      _currentInput = '';
+      _controller.clear();
+      _message = null;
+    });
+
+    // End conditons: win or out of guesses
+    if (guess == _solution) {
+      setState(() {
+        _gameOver = true;
+        _message = "You win! Press Back to play again.";
+      });
+    } else if (_guesses.length == _maxRows) {
+      setState(() {
+        _gameOver = true;
+        _message = "The word was $_solution. Press Back to try again.";
+      });
+    }
+  }
+
+  Widget _buildTile(String? letter, int? status) {
+    Color bg = Colors.black12;
+    if (status == 2) {
+      bg = Colors.green;
+    } else if (status == 1) {
+      bg = Colors.amber;
+    } else if (status == 0) {
+      bg = Colors.grey;
+    }
+
+    String text = (letter ?? '').toUpperCase();
+
+    return Container(
+      width: 48,
+      height: 48,
+      margin: EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.black26),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRow(int rowIndex) {
+    List<Widget> tiles = <Widget>[];
+
+    if (rowIndex < _guesses.length) {
+      String guess = _guesses[rowIndex];
+      List<int> statuses = _evaluate(guess, _solution);
+      for (int i = 0; i < _wordLen; i++) {
+        tiles.add(_buildTile(guess[i], statuses[i]));
+      }
+    } else if (rowIndex == _guesses.length) {
+      String padded = _currentInput.padRight(_wordLen);
+      for (int i = 0; i < _wordLen; i++) {
+        String ch = padded[i].trim();
+        tiles.add(_buildTile(ch.isEmpty ? null : ch, null));
+      }
+    } else {
+      for (int i = 0; i < _wordLen; i++) {
+        tiles.add(_buildTile(null, null));
+      }
+    }
+
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: tiles);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("The Knockoff Wordle")),
+      body: new Center(
+        child: new Padding(
+          padding: EdgeInsets.all(12),
+          child: new Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              // build game board
+              Column(children: List.generate(_maxRows, (i) => _buildRow(i))),
+              SizedBox(height: 20),
+
+              // text input
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 280),
+                child: TextField(
+                  enabled: !_gameOver,
+                  controller: _controller,
+                  onChanged: _onTextChanged,
+                  onSubmitted: (String _) => _submitGuess(),
+                  maxLength: _wordLen,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: _gameOver
+                        ? 'Game over - press Back'
+                        : 'Type a guess, 5 letter word',
+                    counterText: '',
+                  ),
+                ),
+              ),
+              SizedBox(height: 10),
+
+              // feedback message
+              if (_message != null)
+                Text(
+                  _message!,
+                  style: TextStyle(
+                    color: _gameOver ? Colors.green : Colors.red,
+                    fontSize: 15,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              SizedBox(height: 10),
+
+              // buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _gameOver
+                        ? null
+                        : () {
+                            setState(() {
+                              _currentInput = '';
+                              _controller.clear();
+                              _message = null;
+                            });
+                          },
+                    child: Text('Clear'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
